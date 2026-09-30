@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fff4dc">
+<title>La Caccia agli Amici 🐾</title>
+<style>
+:root{
+  --bg:#fff8e9; --card:#fffdf7; --ink:#493522; --accent:#e58b45;
+  --accent2:#7dbb72; --gold:#e8b84b; --muted:#9b846d; --locked:#d9d0c5;
+  --shadow:0 12px 30px rgba(73,53,34,.12);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:
+ radial-gradient(circle at 15% 10%,#ffe8b9 0 8%,transparent 9%),
+ radial-gradient(circle at 85% 20%,#dff1cf 0 7%,transparent 8%),var(--bg);color:var(--ink)}
+.container{max-width:900px;margin:auto;padding:22px}
+header{text-align:center;padding:25px 10px 10px}
+.logo{font-size:52px}
+h1{margin:4px 0;font-size:clamp(28px,6vw,48px)}
+.subtitle{color:var(--muted);margin-top:5px}
+.progress-wrap{background:#eadfce;border-radius:999px;height:16px;overflow:hidden;margin:14px 0 8px}
+.progress{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));width:0%;transition:.5s}
+.progress-text{text-align:center;font-size:14px;color:var(--muted)}
+.card{background:rgba(255,253,247,.94);border:2px solid #f0e4d3;border-radius:26px;padding:24px;box-shadow:var(--shadow);margin:18px 0}
+.day{display:inline-block;background:#f7e7c7;color:#875b28;padding:6px 12px;border-radius:999px;font-weight:800;font-size:13px}
+h2{margin:12px 0 8px;font-size:28px}
+.objective{font-size:19px;line-height:1.55}
+.note{background:#fff3cf;border-left:5px solid var(--gold);padding:12px 14px;border-radius:12px;margin:16px 0;line-height:1.45}
+.reward{display:flex;gap:10px;align-items:center;background:#edf7e9;padding:12px 14px;border-radius:14px;font-weight:700}
+button{border:0;border-radius:16px;padding:14px 18px;font-weight:800;font-size:16px;cursor:pointer}
+.complete{width:100%;margin-top:18px;background:var(--accent);color:white;box-shadow:0 7px 0 #bd6b31}
+.complete:active{transform:translateY(4px);box-shadow:0 3px 0 #bd6b31}
+.complete:disabled{background:#bcb3a8;box-shadow:none;cursor:not-allowed}
+.locked{opacity:.72;filter:saturate(.6)}
+.locked .lock{font-size:40px}
+.days{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.daybox{padding:16px;border-radius:18px;background:#fff;border:2px solid #eee1cf;min-height:105px}
+.daybox.done{border-color:#a9d39d;background:#f2faef}
+.daybox.current{border-color:var(--accent);box-shadow:0 5px 18px rgba(229,139,69,.16)}
+.daybox.locked{background:#f2eee8}
+.small{font-size:13px;color:var(--muted)}
+.donecheck{color:#4d9a48;font-weight:900}
+.modal{position:fixed;inset:0;background:rgba(45,31,18,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.show{display:flex}
+.modalbox{max-width:520px;background:var(--card);border-radius:28px;padding:28px;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.25)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#493522;color:#fff;padding:12px 18px;border-radius:999px;display:none;z-index:20}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:15px}
+.reset{background:transparent;color:#9a8170;font-size:12px;padding:8px}
+@media(max-width:600px){.container{padding:14px}.card{padding:18px}h2{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="logo">🐾</div>
+  <h1>La Caccia agli Amici</h1>
+  <div class="subtitle">Ogni giorno una missione. Un passo alla volta. ❤️</div>
+</header>
+
+<section class="card">
+  <div class="small">PROGRESSI DELLA CACCIA</div>
+  <div class="progress-wrap"><div id="progress" class="progress"></div></div>
+  <div id="progressText" class="progress-text"></div>
+</section>
+
+<section id="current"></section>
+
+<section class="card">
+  <h2>🗺️ Il percorso</h2>
+  <div id="days" class="days"></div>
+</section>
+
+<footer>
+  La caccia è salvata su questo dispositivo. <button class="reset" onclick="resetGame()">Azzera progresso</button>
+</footer>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modalbox">
+    <div style="font-size:55px">🎉🐾🎉</div>
+    <h2>Livello completato!</h2>
+    <p id="modalText"></p>
+    <button onclick="closeModal()" style="background:#e58b45;color:white">Continua</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const missions = [
+ {day:1,title:"La prima foto",text:"Mandare esattamente alle <b>20:23</b> la nostra prima foto assieme.",note:"⏰ L'orario è parte della missione: deve essere esattamente 20:23.",reward:"⭐ 3 punti"},
+ {day:2,title:"Tutti a tavola!",text:"Dare da mangiare a tutti gli animaletti della casa e scattare una foto.",note:"🐱 <b>Bonus X2</b> se rientra anche il gattino.",reward:"⭐ 4 punti · 🐱 Bonus X2"},
+ {day:3,title:"La sfida della Briscola",text:"Vincere una partita a <b>Briscola</b>.",note:"🃏 Hai <b>1 sola chance</b>.",reward:"⭐ 5 punti"},
+ {day:4,title:"Unpopular opinion calcistica",text:"Scrivere o dire in modo totalmente spontaneo una <b>unpopular opinion calcistica</b>.",note:"⚽ Deve essere molto specifica, impegnata e non banale. Se il fidanzato concorda totalmente, <b>il bonus raddoppia</b>.",reward:"⭐ 5 punti · ⚽ Bonus X2"},
+ {day:5,title:"100 baci",text:"Dare <b>100 baci in 1 minuto</b> al tuo patato.",note:"💋 Un minuto. Cento baci. Si parte!",reward:"⭐ 3 punti"},
+ {day:6,title:"Sasso, carta, forbice",text:"Giocare a <b>Sasso Carta Forbice</b>.",note:"✊ Hai <b>1 sola chance</b>.",reward:"⭐ 5 punti"},
+ {day:7,title:"Prima tu",text:"Durante un pasto, versa <b>l'acqua tu per prima</b> al tuo fidanzato.",note:"💧 Deve succedere spontaneamente durante il pasto.",reward:"⭐ 3 punti"},
+ {day:8,title:"Il pacchetto",text:"Convinci il tuo fidanzato <b>in tutti i modi</b> a darti il pacchetto.",note:"🎁 La trattativa è aperta. La missione termina quando lui cede.",reward:"⭐ 5 punti"},
+ {day:9,title:"Salto!",text:"Salta in braccio al tuo fidanzato.",note:"🐾 Missione lampo: sorprendi il tuo fidanzato!",reward:"⭐ 3 punti"},
+ {day:10,title:"Operazione piatti",text:"A tavola, durante il pranzo o la cena, mentre tutti mangiano, togli i piatti dal tavolo e portali via <b>SENZA RIDERE</b>.",note:"😂 La parte difficile è proprio non ridere.",reward:"⭐ 6 punti"}
+];
+
+const KEY="caccia_cucciolotti_v1";
+let state=JSON.parse(localStorage.getItem(KEY)||'{"completed":[]}');
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function isDone(d){return state.completed.includes(d)}
+function currentDay(){for(let i=1;i<=missions.length;i++) if(!isDone(i)) return i; return missions.length}
+function render(){
+ const done=state.completed.length;
+ document.getElementById("progress").style.width=(done/missions.length*100)+"%";
+ document.getElementById("progressText").textContent=`${done} / ${missions.length} livelli completati`;
+ const d=currentDay(), m=missions[d-1];
+ let html="";
+ if(done===missions.length){
+   html=`<section class="card" style="text-align:center"><div style="font-size:70px">🏆</div><h2>La caccia è completa!</h2><p class="objective">Hai conquistato tutti i 10 livelli. ❤️</p></section>`;
+ } else {
+   html=`<section class="card">
+    <span class="day">GIORNO ${m.day}</span>
+    <h2>${m.title}</h2>
+    <div class="objective">${m.text}</div>
+    <div class="note">${m.note}</div>
+    <div class="reward">${m.reward}</div>
+    <button class="complete" onclick="completeDay(${m.day})">✅ COMPLETATA</button>
+   </section>`;
+ }
+ document.getElementById("current").innerHTML=html;
+ document.getElementById("days").innerHTML=missions.map(x=>{
+   const done=isDone(x.day), unlocked=x.day<=d;
+   return `<div class="daybox ${done?'done':''} ${!unlocked?'locked':''} ${x.day===d?'current':''}">
+    <div style="font-weight:900">Giorno ${x.day}</div>
+    ${done?'<div class="donecheck">✓ Completato</div>':unlocked?'<div style="margin-top:7px">🔓 Disponibile</div>':'<div class="lock" style="margin-top:7px">🔒</div>'}
+    <div class="small" style="margin-top:7px">${unlocked?x.title:'Missione nascosta'}</div>
+   </div>`
+ }).join("");
+}
+function completeDay(day){
+ if(day!==currentDay()) return;
+ state.completed.push(day); save(); render();
+ document.getElementById("modalText").textContent =
+  day<missions.length ? `Bravissima! Il Giorno ${day} è completato. Il prossimo livello è ora sbloccato. 🐾` :
+  "Hai completato tutte le missioni. La grande caccia è finita! ❤️";
+ document.getElementById("modal").classList.add("show");
+}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function resetGame(){
+ if(confirm("Vuoi davvero cancellare tutto il progresso?")){state={completed:[]};save();render()}
+}
+render();
+</script>
+</body>
+</html>
